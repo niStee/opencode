@@ -40,6 +40,8 @@ import { ConfigPlugin } from "@/config/plugin"
 import { AccountTest } from "../fake/account"
 import { AuthTest } from "../fake/auth"
 import { NpmTest } from "../fake/npm"
+import { Substitution } from "@opencode-ai/core/substitution"
+import { AuthWellKnownTest } from "../fake/auth-well-known"
 
 const testFlock = EffectFlock.defaultLayer
 
@@ -93,7 +95,9 @@ const configLayer = (
   Config.layer.pipe(
     Layer.provide(testFlock),
     Layer.provide(AppFileSystem.defaultLayer),
+    Layer.provide(Substitution.defaultLayer),
     Layer.provide(Env.defaultLayer),
+    Layer.provide(AuthWellKnownTest.empty),
     Layer.provide(options.auth ?? AuthTest.empty),
     Layer.provide(options.account ?? AccountTest.empty),
     Layer.provideMerge(infra),
@@ -1675,7 +1679,9 @@ test("remote well-known config can use FetchHttpClient layer", async () => {
         Config.layer.pipe(
           Layer.provide(testFlock),
           Layer.provide(AppFileSystem.defaultLayer),
+          Layer.provide(Substitution.defaultLayer),
           Layer.provide(Env.defaultLayer),
+          Layer.provide(AuthWellKnownTest.empty),
           Layer.provide(wellKnownAuth(server.url.origin)),
           Layer.provide(AccountTest.empty),
           Layer.provideMerge(infra),
