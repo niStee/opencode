@@ -208,7 +208,13 @@ export const TaskTool = Tool.define(
           },
           parts,
         })
-        return result.parts.findLast((item) => item.type === "text")?.text ?? ""
+        const text = result.parts.findLast((item) => item.type === "text")?.text
+        if (text === undefined || text.trim() === "") {
+          return yield* Effect.fail(
+            new Error("Task completed with no text output — model may have been rate-limited or returned an empty response"),
+          )
+        }
+        return text
       })
 
       const resumeWhenIdle: (input: { userID: MessageID; state: "completed" | "error" }) => Effect.Effect<void> =
