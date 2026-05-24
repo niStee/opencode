@@ -549,6 +549,39 @@ describe("tool.task", () => {
     }),
   )
 
+  background.instance("background tasks fail when the subagent returns no text output", () =>
+    Effect.gen(function* () {
+      const jobs = yield* BackgroundJob.Service
+      const { chat, assistant } = yield* seed()
+      const tool = yield* TaskTool
+      const def = yield* tool.init()
+
+      const result = yield* def.execute(
+        {
+          description: "inspect bug",
+          prompt: "look into the cache key path",
+          subagent_type: "general",
+          background: true,
+        },
+        {
+          sessionID: chat.id,
+          messageID: assistant.id,
+          agent: "build",
+          abort: new AbortController().signal,
+          extra: { promptOps: stubOps({ text: "   " }) },
+          messages: [],
+          metadata: () => Effect.void,
+          ask: () => Effect.void,
+        },
+      )
+
+      const waited = yield* jobs.wait({ id: result.metadata.sessionId, timeout: 1_000 })
+      expect(waited.timedOut).toBe(false)
+      expect(waited.info?.status).toBe("error")
+      expect(waited.info?.error).toContain("Task completed with no text output")
+    }),
+  )
+
   background.instance("background task completion does not wait for the parent resume loop", () =>
     Effect.gen(function* () {
       const jobs = yield* BackgroundJob.Service
