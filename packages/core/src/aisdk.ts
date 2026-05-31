@@ -56,7 +56,7 @@ function wrapSSE(res: Response, ms: number, ctl: AbortController) {
   })
 }
 
-function prepareOptions(model: ModelV2.Info, pkg: string) {
+export function prepareOptions(model: ModelV2.Info, pkg: string) {
   const options: Record<string, any> = { name: model.providerID, ...model.options.aisdk.provider }
   if (model.endpoint.type === "aisdk" && model.endpoint.url) options.baseURL = model.endpoint.url
 
@@ -70,7 +70,9 @@ function prepareOptions(model: ModelV2.Info, pkg: string) {
       typeof chunkTimeout === "number" && chunkTimeout > 0 ? new AbortController() : undefined,
       options.timeout !== undefined && options.timeout !== null && options.timeout !== false
         ? AbortSignal.timeout(options.timeout)
-        : undefined,
+        : options.timeout !== false
+          ? AbortSignal.timeout(180000) // Default 3-minute TTFB timeout to prevent silent network hangs
+          : undefined,
     ].filter((item): item is AbortSignal | AbortController => Boolean(item))
     const chunkAbortCtl = signals.find((item): item is AbortController => item instanceof AbortController)
     const abortSignals = signals.map((item) => (item instanceof AbortController ? item.signal : item))
