@@ -184,8 +184,9 @@ export function policy(opts: {
       const error = opts.parse(meta.input)
       const retry = retryable(error, opts.provider)
       if (!retry || meta.attempt > MAX_RETRY_ATTEMPTS) return Cause.done(meta.attempt)
+      const wait = delay(meta.attempt, MessageV2.APIError.isInstance(error) ? error : undefined)
+      if (wait > 60_000) return Cause.done(meta.attempt)
       return Effect.gen(function* () {
-        const wait = delay(meta.attempt, MessageV2.APIError.isInstance(error) ? error : undefined)
         const now = yield* Clock.currentTimeMillis
         yield* opts.set({
           attempt: meta.attempt,
