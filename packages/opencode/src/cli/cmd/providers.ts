@@ -270,10 +270,12 @@ export const ProvidersListCommand = effectCmd({
     yield* Prompt.outro(`${results.length} credentials`)
 
     const activeEnvVars: Array<{ provider: string; envVar: string }> = []
+    const seenEnvVars = new Set<string>()
 
     for (const [providerID, provider] of Object.entries(database)) {
       for (const envVar of provider.env) {
-        if (process.env[envVar]) {
+        if (process.env[envVar] && !seenEnvVars.has(envVar)) {
+          seenEnvVars.add(envVar)
           activeEnvVars.push({
             provider: provider.name || providerID,
             envVar,

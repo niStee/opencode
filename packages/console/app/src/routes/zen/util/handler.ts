@@ -216,7 +216,8 @@ export async function handler(
         // ie. cannot change codex model providers mid-session
         modelInfo.stickyProvider !== "strict" &&
         modelInfo.fallbackProvider &&
-        providerInfo.id !== modelInfo.fallbackProvider
+        providerInfo.id !== modelInfo.fallbackProvider &&
+        retry.retryCount < 5
       ) {
         return retriableRequest({
           excludeProviders: [...retry.excludeProviders, providerInfo.id],
