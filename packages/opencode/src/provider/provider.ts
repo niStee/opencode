@@ -1611,8 +1611,11 @@ export const layer = Layer.effect(
 
           if (opts.signal) signals.push(opts.signal)
           if (chunkAbortCtl) signals.push(chunkAbortCtl.signal)
-          if (options["timeout"] !== undefined && options["timeout"] !== null && options["timeout"] !== false)
+          if (options["timeout"] !== undefined && options["timeout"] !== null && options["timeout"] !== false) {
             signals.push(AbortSignal.timeout(options["timeout"]))
+          } else if (options["timeout"] !== false) {
+            signals.push(AbortSignal.timeout(180000)) // Default 3-minute TTFB timeout to prevent silent network hangs
+          }
 
           const combined = signals.length === 0 ? null : signals.length === 1 ? signals[0] : AbortSignal.any(signals)
           if (combined) opts.signal = combined
