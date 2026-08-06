@@ -1,17 +1,19 @@
 name: Sync Fork with Upstream
 
-# Uses GitHub App installation token (actions/create-github-app-token@v2)
-# instead of GITHUB_TOKEN, because GITHUB_TOKEN cannot push workflow file
-# changes from upstream (HTTP 422 "refusing to allow a GitHub App to
-# create or update workflow ... without workflows permission").
+# opencode uses merge-upstream directly (no PR-based sync).
+# GitHub App installation token because GITHUB_TOKEN cannot push workflow
+# file changes from upstream (HTTP 422 "refusing to allow a GitHub App
+# to create or update workflow ... without workflows permission").
 #
 # This repo has no rulesets on the default branch, so merge-upstream works
-# directly (no PR + approval pattern needed).
+# directly. No approval needed (no ruleset requires approval).
+# The App token has Contents: Write + Workflows: Write (granted on the App's
+# permissions page).
 #
-# App setup: see /home/nils/.tmp/opencode/SYNC_PAT_SETUP.md
-# Repo secrets already configured:
-#   - APPID4510581 → .pem private key
-#   - APP_ID       → the App ID number "4510581"
+# Prerequisites:
+#   - GitHub App 'fork-sync-approver' installed on this repo (App ID 4510581)
+#   - Repo secret APPID4510581 = .pem private key
+#   - Repo secret APP_ID = 4510581
 
 on:
   schedule:
