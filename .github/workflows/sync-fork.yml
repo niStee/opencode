@@ -1,17 +1,17 @@
 name: Sync Fork with Upstream
 
-# Uses SYNC_PAT (fine-grained PAT with Contents: Write + Workflows: Write)
+# Uses GitHub App installation token (actions/create-github-app-token@v2)
 # instead of GITHUB_TOKEN, because GITHUB_TOKEN cannot push workflow file
-# changes from upstream (HTTP 422 "refusing to allow a GitHub App to create
-# or update workflow ... without workflows permission").
+# changes from upstream (HTTP 422 "refusing to allow a GitHub App to
+# create or update workflow ... without workflows permission").
 #
 # This repo has no rulesets on the default branch, so merge-upstream works
 # directly (no PR + approval pattern needed).
 #
-# Prerequisites:
-#   - Create a fine-grained PAT with `Contents: Read and Write` + `Workflows:
-#     Read and Write`, scoped to this repo.
-#   - Set it as the `SYNC_PAT` repository secret.
+# App setup: see /home/nils/.tmp/opencode/SYNC_PAT_SETUP.md
+# Repo secrets already configured:
+#   - APPID4510581 → .pem private key
+#   - APP_ID       → the App ID number "4510581"
 
 on:
   schedule:
@@ -29,38 +29,33 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Check SYNC_PAT secret is configured
-        run: |
-          if [ -z "${{ secrets.SYNC_PAT }}" ]; then
-            echo "::error::SYNC_PAT secret is not set. Create a fine-grained PAT with 'Contents: Read and Write' + 'Workflows: Read and Write' scoped to this repo, then add it as the SYNC_PAT repository secret."
-            exit 1
-          fi
+      - name: Mint short-lived GitHub App installation token
+        id: app_token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APPID4510581 }}
+          owner: niStee
+          repositories: antragsgruen,claw-code,oh-my-openagent,opencode,topgrade
 
       - name: Sync default branch with upstream
         env:
-          GH_TOKEN: ${{ secrets.SYNC_PAT }}
+          GH_TOKEN: ${{ steps.app_token.outputs.token }}
         run: |
           DEFAULT_BRANCH="${{ github.event.repository.default_branch }}"
           PARENT=$(gh api "repos/${{ github.repository }}" --jq '.parent.full_name // empty')
-
           if [ -z "$PARENT" ]; then
             echo "::notice::Not a fork — nothing to sync."
             exit 0
           fi
-
           UPSTREAM_DEFAULT=$(gh api "repos/$PARENT" --jq '.default_branch')
           FORK_HEAD=$(gh api "repos/${{ github.repository }}/branches/$DEFAULT_BRANCH" --jq '.commit.sha')
           UPSTREAM_HEAD=$(gh api "repos/$PARENT/branches/$UPSTREAM_DEFAULT" --jq '.commit.sha')
-
           if [ "$FORK_HEAD" = "$UPSTREAM_HEAD" ]; then
             echo "::notice::Fork is up to date with $PARENT — no sync needed."
             exit 0
           fi
-
           echo "::notice::Syncing $DEFAULT_BRANCH with $PARENT:$UPSTREAM_DEFAULT..."
-          # Use SYNC_PAT (not GITHUB_TOKEN) because the PAT has Workflows: Write
-          # permission, which GITHUB_TOKEN lacks. Without it, upstream changes
-          # to .github/workflows/* are rejected with HTTP 422.
           gh api -X POST "repos/${{ github.repository }}/merge-upstream" \
             -f branch="$DEFAULT_BRANCH"
           echo "::notice::Sync complete."
